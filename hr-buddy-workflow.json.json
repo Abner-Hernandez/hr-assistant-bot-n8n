@@ -1,0 +1,1320 @@
+{
+  "name": "logueo-chatIA",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').first().json.message.text }}",
+        "options": {
+          "systemMessage": "Eres el HR Buddy, asistente virtual de RR. HH. de ChocolaTech.\n\nCONTEXTO DEL USUARIO ACTUAL:\n- El usuario ya se encuentra AUTENTICADO.\n- Su ID de Empleado asignado es: {{ $('obtener estados').item.json.empleado_id }}\n\nREGLAS DE OPERACIÓN:\n1. Responde siempre en español y con un tono amable.\n2. Si el usuario pregunta por sus datos personales (como vacaciones, puesto o departamento), utiliza la herramienta de Postgres pasando como entrada el ID de Empleado que tienes en su contexto de arriba. No necesitas volver a preguntárselo al usuario.\n3. No solicites un login, código de verificación ni contraseña de nuevo."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2096,
+        1376
+      ],
+      "id": "317f0393-6773-4c7e-bf63-c7d03622b463",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatCohere",
+      "typeVersion": 1,
+      "position": [
+        1936,
+        1600
+      ],
+      "id": "5fd703d3-89f7-41e2-9143-02da2c4f3b2e",
+      "name": "Cohere Chat Model",
+      "credentials": {
+        "cohereApi": {
+          "id": "ha85PwsREtHygdNn",
+          "name": "Cohere account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').first().json.message.from.id }}",
+        "contextWindowLength": 2
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        2064,
+        1600
+      ],
+      "id": "f977a29e-99ec-4a35-8a13-34543dd5dcb6",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "buscar informacion de politicas de la empresa, para apoyar a diferentes empleados",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "list",
+          "value": "vector_store_key"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        2192,
+        1600
+      ],
+      "id": "f193eaf0-9ad5-4503-bcdb-ce5e9d81a4ca",
+      "name": "Simple Vector Store"
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        2272,
+        1808
+      ],
+      "id": "3274919d-156c-4a8b-8e5f-bc209b81217d",
+      "name": "Embeddings Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "ha85PwsREtHygdNn",
+          "name": "Cohere account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "empleados",
+          "mode": "list",
+          "cachedResultName": "empleados"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $('Switch').item.json.empleado_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        2480,
+        1600
+      ],
+      "id": "561a445a-f54d-4b96-bdb7-6412decb0c90",
+      "name": "Select rows from a table in Postgres",
+      "credentials": {
+        "postgres": {
+          "id": "2NDi6m37iBpAbzrf",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -304,
+        1200
+      ],
+      "id": "1850f95b-0edf-4b9c-82fd-3d71ba3fb246",
+      "name": "Telegram Trigger",
+      "webhookId": "ff24ad4f-bc64-45a4-8d81-2241dcc118f6",
+      "credentials": {
+        "telegramApi": {
+          "id": "nYN8ZUbqLVR2h3vZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "45962809-3864-4de8-9694-70f5e9585420",
+              "name": "=canal_user_id",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "string"
+            },
+            {
+              "id": "00f3c473-dddc-4ca6-828f-9cf98aa059c4",
+              "name": "=mensaje",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "1d37502f-76a3-4510-8708-137456e8f049",
+              "name": "plataforma",
+              "value": "telegram",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -80,
+        1200
+      ],
+      "id": "d6f9f9a8-a297-4014-9873-9ae62eaff864",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.estado }}",
+                    "rightValue": "esperando_email",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "636c9437-c929-4ccc-9956-7c2c845d830a"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "espera_email"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "27d104d6-9f28-4b71-883b-5cd542258768",
+                    "leftValue": "={{ $json.estado }}",
+                    "rightValue": "esperando_codigo",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "espera_codigo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "30793254-485d-4777-8078-359b0bbc12cf",
+                    "leftValue": "={{ $json.estado }}",
+                    "rightValue": "esperando_nueva_contrasenia",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "espera_pass_nueva"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "df125060-6b98-4f0e-b336-25afed81418e",
+                    "leftValue": "={{ $json.estado }}",
+                    "rightValue": "esperando_contrasenia",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "espera_pass"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "94f737f6-e735-42d7-ba41-3b425e195c98",
+                    "leftValue": "={{ $json.estado }}",
+                    "rightValue": "autenticado",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "autenticado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        816,
+        560
+      ],
+      "id": "7cf36134-d14d-42c6-8778-54064a09b949",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4efb1d60-d1d4-4fb3-8f42-0db723794c2f",
+              "leftValue": "={{ $json.autenticado }}",
+              "rightValue": "={{ Number(0) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        368,
+        1200
+      ],
+      "id": "eb3a1066-7361-44e0-9c22-71454a46fe19",
+      "name": "Autenticado"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM canales_autenticados\nWHERE plataforma = '{{ $json.plataforma }}'\nAND canal_user_id = '{{ $json.canal_user_id }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        144,
+        1200
+      ],
+      "id": "a224fc4a-71c0-4d5e-ae97-b450b32f6233",
+      "name": "nuevo registro",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "2NDi6m37iBpAbzrf",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "992bb863-9b61-4069-a8cf-8764b5606a14",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1264,
+        -256
+      ],
+      "id": "988f0df0-5511-4ec1-9050-1b511e1194d6",
+      "name": "If",
+      "alwaysOutputData": true,
+      "retryOnFail": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id\nFROM empleados\nWHERE email = '{{ $('Telegram Trigger').item.json.message.text }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1040,
+        -256
+      ],
+      "id": "1e0e3425-3639-46df-b857-7c3543b808c1",
+      "name": "email correcto",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "2NDi6m37iBpAbzrf",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT estado, autenticado, empleado_id\nFROM canales_autenticados\nWHERE plataforma = '{{ $json.plataforma }}'\nAND canal_user_id = '{{ $json.canal_user_id }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        592,
+        608
+      ],
+      "id": "7e7a2c70-0474-4ad9-bd1b-bd891da2a342",
+      "name": "obtener estados",
+      "credentials": {
+        "postgres": {
+          "id": "2NDi6m37iBpAbzrf",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO canales_autenticados (\n  plataforma,\n  canal_user_id,\n  estado,\n  autenticado\n)\nVALUES (\n  '{{ $('Edit Fields1').item.json.plataforma }}',\n  '{{ $('Edit Fields1').item.json.canal_user_id }}',\n  'esperando_email',\n  false\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2208,
+        1984
+      ],
+      "id": "527656b3-dee6-45cb-9e8b-beeb3f39b732",
+      "name": "registra el dispositivo, espera_email",
+      "credentials": {
+        "postgres": {
+          "id": "2NDi6m37iBpAbzrf",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE canales_autenticados\nSET estado = '{{ $json.next_state }}',\n    empleado_id = COALESCE({{ $('nuevo registro').item.json.empleado_id }}, empleado_id)\nWHERE canal_user_id = '{{ $('Edit Fields1').item.json.canal_user_id }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2688,
+        704
+      ],
+      "id": "f5d1c792-82eb-4dfa-b42a-6438b15f66a6",
+      "name": "Execute a SQL query",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "2NDi6m37iBpAbzrf",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      reply: \"Necesitamos que te identifiques, por favor ingresa tu correo eléctronico\",\n      next_state: \"esperando_codigo\",\n      employee_id: $json.id,\n      should_update_state: true\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        1984
+      ],
+      "id": "5d12059f-a499-4741-bf58-7af59127b350",
+      "name": "Builder Contract1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      reply: \"Perfecto 👍 ahora ingresa tu código de empleado\",\n      next_state: \"esperando_codigo\",\n      empleado_id: $json.id,\n      should_update_state: true\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        -208
+      ],
+      "id": "e882f104-9f18-4c1b-ae29-50127eaff898",
+      "name": "Solicitud codigo empleado"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "={{ $json.reply || $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2688,
+        512
+      ],
+      "id": "d3731584-74af-48e8-a214-d6e905597af7",
+      "name": "mensaje user",
+      "webhookId": "e20c08ae-6d85-42ba-badd-0010c2b4e1e1",
+      "credentials": {
+        "telegramApi": {
+          "id": "nYN8ZUbqLVR2h3vZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id\nFROM empleados\nWHERE codigo_corporativo = '{{ $('Telegram Trigger').item.json.message.text }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1488,
+        224
+      ],
+      "id": "52b35479-1a0c-41a3-8855-65a9d9c27a72",
+      "name": "codigo correcto",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "2NDi6m37iBpAbzrf",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "992bb863-9b61-4069-a8cf-8764b5606a14",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1712,
+        224
+      ],
+      "id": "061a6fb3-ff36-409b-aada-759906f44f52",
+      "name": "If1",
+      "alwaysOutputData": false,
+      "retryOnFail": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id\nFROM credenciales\nWHERE empleado_id = '{{ $json.id }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1488,
+        -352
+      ],
+      "id": "fe2ac595-ddb9-4d36-b6b6-493072ffeb5b",
+      "name": "tiene pasword?",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "2NDi6m37iBpAbzrf",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b2fd36de-224b-4e8e-a914-fefc6b9b362a",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1712,
+        -352
+      ],
+      "id": "c4119249-91c0-4de2-8b23-21a0b99ea74f",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      reply: \"Perfecto, es su primer ingreso por favor ingrese la contraseña que quiere registar (Esta contraseña sera usada para su autenticacion en el sistema)\",\n      next_state: \"esperando_contrasenia\",\n      empleado_id: $json.id,\n      should_update_state: true\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        176
+      ],
+      "id": "68c7d745-0d76-4980-abfd-697614d02f81",
+      "name": "solicitud contraseña nueva"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      reply: \"El correo ingresado no fue correcto, intenta nuevamente\",\n      next_state: \"esperando_codigo\",\n      empleado_id: $json.id || null,\n      should_update_state: true\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        -16
+      ],
+      "id": "453ea66b-89f7-431f-9d08-d410b191c350",
+      "name": "ingrese correo nuevamente"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      reply: \"Perfecto, por favor ingresa tu contraseña\",\n      next_state: \"esperando_contrasenia\",\n      empleado_id: $json.id,\n      should_update_state: true\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        -400
+      ],
+      "id": "da98a7d9-8c1e-4b39-859b-9d5101ee7e48",
+      "name": "Solicitud contrasenia"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO credenciales (\n    empleado_id,\n    password_hash,\n    password_temporal,\n    requiere_cambio_password,\n    ultimo_cambio_password,\n    activo\n) VALUES (\n    {{ $json.empleado_id }},\n    crypt('{{ $('Telegram Trigger').item.json.message.text }}', gen_salt('bf')),\n    true,\n    true,\n    CURRENT_TIMESTAMP,\n    true\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1712,
+        1040
+      ],
+      "id": "89cd391f-7425-4838-a2a9-f2c2680a38b6",
+      "name": "registrar contrasenia",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "2NDi6m37iBpAbzrf",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id\nFROM credenciales\nWHERE password_hash = crypt('{{ $('Telegram Trigger').item.json.message.text }}', gen_salt('bf'));",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1488,
+        608
+      ],
+      "id": "88fb8490-17c8-4455-816e-32c4dab48796",
+      "name": "contrasenia correcta",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "2NDi6m37iBpAbzrf",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "992bb863-9b61-4069-a8cf-8764b5606a14",
+              "leftValue": "={{ $json.id ?? 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1712,
+        608
+      ],
+      "id": "e8864072-6397-4333-a1f0-3deb801d9731",
+      "name": "If3",
+      "alwaysOutputData": false,
+      "retryOnFail": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      reply: \"Su contraseña fue registrada correctamente, Bienvenido\",\n      next_state: \"autenticado\",\n      empleado_id: $json.id || null,\n      should_update_state: true\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        992
+      ],
+      "id": "280a5a2b-b1a3-4523-86c3-d4760f671d76",
+      "name": "registro contrasenia exitoso"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      reply: \"Se autentico correctamente\",\n      next_state: \"autenticado\",\n      empleado_id: $json.id || null,\n      should_update_state: true\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        608
+      ],
+      "id": "50ef753c-acf7-4616-8ca4-ca4cf677613a",
+      "name": "autenticacion exitosa"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      reply: \"la contraseña es incorrecta ingresela de nuevo\",\n      next_state: \"pendiente_autenticacion\",\n      empleado_id: $json.id || null,\n      should_update_state: true\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        800
+      ],
+      "id": "2782123a-d451-44f4-830d-f30d7f452d5b",
+      "name": "fallo autenticacion"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      reply: \"La contraseña es incorrecta, intenta nuevamente\",\n      next_state: \"esperando_nueva_contrasenia\",\n      empleado_id: $json.id || null,\n      should_update_state: true\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        368
+      ],
+      "id": "f801ebfa-7fcb-41ac-a917-2d55f768ac57",
+      "name": "contraseña incorrecta"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      reply: \"Fallo al registrar su contraseña, por favor intente de nuevo ingresando la contraseña a registrar\",\n      next_state: \"por_registrar_contrasenia\",\n      empleado_id: $json.id || null,\n      should_update_state: true\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        1184
+      ],
+      "id": "bdaf9d7e-1ec2-4da6-bc56-93a8194488f6",
+      "name": "solicitar de nuevo contraseña registrar"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cohere Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Simple Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table in Postgres": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "mensaje user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "nuevo registro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "email correcto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "codigo correcto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "registrar contrasenia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "contrasenia correcta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Autenticado": {
+      "main": [
+        [
+          {
+            "node": "obtener estados",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Builder Contract1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "nuevo registro": {
+      "main": [
+        [
+          {
+            "node": "Autenticado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "email correcto": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "obtener estados": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "registra el dispositivo, espera_email": {
+      "main": [
+        [
+          {
+            "node": "mensaje user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "tiene pasword?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ingrese correo nuevamente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Builder Contract1": {
+      "main": [
+        [
+          {
+            "node": "registra el dispositivo, espera_email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        []
+      ]
+    },
+    "Solicitud codigo empleado": {
+      "main": [
+        [
+          {
+            "node": "mensaje user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "codigo correcto": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "tiene pasword?": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Solicitud contrasenia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Solicitud codigo empleado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "solicitud contraseña nueva",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "contraseña incorrecta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "solicitud contraseña nueva": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "mensaje user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ingrese correo nuevamente": {
+      "main": [
+        [
+          {
+            "node": "mensaje user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solicitud contrasenia": {
+      "main": [
+        [
+          {
+            "node": "mensaje user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "registrar contrasenia": {
+      "main": [
+        [
+          {
+            "node": "registro contrasenia exitoso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "solicitar de nuevo contraseña registrar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "contrasenia correcta": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "registro contrasenia exitoso": {
+      "main": [
+        [
+          {
+            "node": "mensaje user",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "autenticacion exitosa",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "fallo autenticacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "autenticacion exitosa": {
+      "main": [
+        [
+          {
+            "node": "mensaje user",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fallo autenticacion": {
+      "main": [
+        [
+          {
+            "node": "mensaje user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "contraseña incorrecta": {
+      "main": [
+        [
+          {
+            "node": "mensaje user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "solicitar de nuevo contraseña registrar": {
+      "main": [
+        [
+          {
+            "node": "mensaje user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d42e3485-5c75-4f96-9901-ea8bdc635232",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fd447098658e5cc59cb2f7bd57c20ce4703fd06822a05faa9ded217e354b7766"
+  },
+  "id": "S1aKzJmxzfJp4j42",
+  "tags": []
+}
